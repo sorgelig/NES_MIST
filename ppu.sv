@@ -230,11 +230,12 @@ module SpriteRAM(input clk, input ce,
                  output reg spr_overflow,   // Set to true if we had more than 8 objects on a scan line. Reset when exiting vblank.
                  output reg sprite0);       // True if sprite#0 is included on the scan line currently being painted.
   reg [7:0] sprtemp[0:31];   // Sprite Temporary Memory. 32 bytes.
-  reg [7:0] oam[0:255];      // Sprite OAM. 256 bytes.
   reg [7:0] oam_ptr;         // Pointer into oam_ptr.
   reg [2:0] p;               // Upper 3 bits of pointer into temp, the lower bits are oam_ptr[1:0].
   reg [1:0] state;           // Current state machine state
-  wire [7:0] oam_data = oam[oam_ptr];
+  reg [7:0] oam[256];        // Sprite OAM. 256 bytes.
+  reg [7:0] oam_data;
+
   // Compute the current address we read/write in sprtemp.
   reg [4:0] sprtemp_ptr;
   // Check if the current Y coordinate is inside.
@@ -284,13 +285,18 @@ module SpriteRAM(input clk, input ce,
     new_oam_ptr[1:0] = oam_ptr[1:0] + {1'b0, oam_inc[0]};
     {oam_wrapped, new_oam_ptr[7:2]} = {1'b0, oam_ptr[7:2]} + {6'b0, oam_inc[1]};
   end
+
+  wire [7:0] oam_ptr_tmp = oam_ptr_load ? data_in : new_oam_ptr;
   always @(posedge clk) if (ce) begin
      
     // Some bits of the OAM are hardwired to zero.
-    if (oam_load)
-      oam[oam_ptr] <= (oam_ptr & 3) == 2 ? data_in & 8'hE3: data_in;
-    if (cycle[0] && sprites_enabled || oam_load || oam_ptr_load) begin
-      oam_ptr <= oam_ptr_load ? data_in : new_oam_ptr;
+    if (oam_load) begin
+		oam[oam_ptr] <= (oam_ptr & 3) == 2 ? data_in & 8'hE3: data_in;
+		oam_data <= (oam_ptr & 3) == 2 ? data_in & 8'hE3: data_in;
+	 end
+    if((cycle[0] && sprites_enabled) || oam_load || oam_ptr_load) begin
+		oam_ptr <= oam_ptr_tmp;
+		oam_data <= oam[oam_ptr_tmp];
     end
     // Set overflow flag?
     if (sprites_enabled && state == 2'b11 && spr_is_inside)
@@ -324,6 +330,7 @@ module SpriteRAM(input clk, input ce,
       state <= 0;
       p <= 0;
       oam_ptr <= 0;
+		oam_data <= oam[0];
       sprite0_curr <= 0;
       sprite0 <= sprite0_curr;
     end

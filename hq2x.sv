@@ -133,9 +133,8 @@ reg [7:0] y;
 reg [1:0] yshort; // counts only lines 0-3, then stays on 3.
 reg [8:0] offs;
 reg first_pixel;
-reg [14:0] inbuf[0:511];   // 2 lines of input pixels
+reg [14:0] inbuf[0:511]; /* syn_ramstyle = "no_rw_check" */  // 2 lines of input pixels
 reg [14:0] outbuf[0:2047]; // 4 lines of output pixels
-
 
 wire curbuf = y[0];
 reg last_line;
@@ -147,22 +146,26 @@ wire diff0, diff1;
 DiffCheck diffcheck0(Curr1, (i == 0) ? Prev0 : (i == 1) ? Curr0 : (i == 2) ? Prev2 : Next1, diff0);
 DiffCheck diffcheck1(Curr1, (i == 0) ? Prev1 : (i == 1) ? Next0 : (i == 2) ? Curr2 : Next2, diff1);
 wire [7:0] new_pattern = {diff1, diff0, pattern[7:2]};
-always @(posedge clk)
-  pattern <= new_pattern;
+always @(posedge clk) pattern <= new_pattern;
 
 wire less_254 = (offs >= 510) || (offs < 254);
 wire [8:0] inbuf_rd_addr = {i[0] == 0 ? prevbuf : curbuf, offs[7:0]};
 
 always @(posedge clk) begin
-  if (i == 0 && less_254) Curr2 <= inbuf[inbuf_rd_addr];
-  if (i == 1 && less_254) begin
-    Prev2 <= Curr2;
-    Curr2 <= inbuf[inbuf_rd_addr];
-  end
-  if (i == 2 && less_254) begin
-    Next2 <= last_line ? Curr2 : inputpixel;
-    inbuf[{writebuf, offs[7:0]}] <= inputpixel;
-  end
+	if(less_254) begin
+		case(i)
+			0: Curr2 <= inbuf[inbuf_rd_addr];
+			1: begin
+					Prev2 <= Curr2;
+					Curr2 <= inbuf[inbuf_rd_addr];
+				end
+			2: begin
+					Next2 <= last_line ? Curr2 : inputpixel;
+					inbuf[{writebuf, offs[7:0]}] <= inputpixel;
+				end
+			default:;
+		endcase
+	end
 end
 
 wire [14:0] X = (i == 0) ? A : (i == 1) ? Prev1 : (i == 2) ? Next1 : G;
