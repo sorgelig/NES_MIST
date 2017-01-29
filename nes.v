@@ -143,10 +143,7 @@ module NES(input clk, input reset, input ce,
            output [7:0] memory_dout,
            
            output [8:0] cycle,
-           output [8:0] scanline,
-           
-           output reg [31:0] dbgadr,
-           output [1:0] dbgctr
+           output [8:0] scanline
            );
   reg [7:0] from_data_bus;
   wire [7:0] cpu_dout;
@@ -160,7 +157,7 @@ module NES(input clk, input reset, input ce,
     if (reset)
       cpu_cycle_counter <= 0;
     else if (ce)
-      cpu_cycle_counter <= (cpu_cycle_counter == 2) ? 0 : cpu_cycle_counter + 1;
+      cpu_cycle_counter <= (cpu_cycle_counter == 2) ? 2'd0 : cpu_cycle_counter + 1'd1;
   end
 
   // Sample the NMI flag on cycle #0, otherwise if NMI happens on cycle #0 or #1,

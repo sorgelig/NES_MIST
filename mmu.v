@@ -230,8 +230,8 @@ module MMC2(input clk, input ce, input reset,
 // PPU reads $1FD8 through $1FDF: latch 1 is set to $FD for subsequent reads
 // PPU reads $1FE8 through $1FEF: latch 1 is set to $FE for subsequent reads
   always @(posedge clk) if (ce && chr_read) begin
-    latch_0 <= (chr_ain & 14'h3fff) == 14'h0fd8 ? 0 : (chr_ain & 14'h3fff) == 14'h0fe8 ? 1 : latch_0;
-    latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1 : latch_1;
+    latch_0 <= (chr_ain & 14'h3fff) == 14'h0fd8 ? 1'd0 : (chr_ain & 14'h3fff) == 14'h0fe8 ? 1'd1 : latch_0;
+    latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
   end
   
   // The PRG bank to load. Each increment here is 8kb. So valid values are 0..15.
@@ -298,7 +298,7 @@ module MMC3(input clk, input ce, input reset,
   
   wire four_screen_mirroring = flags[16] | DxROM;
   reg mapper47_multicart;
-  wire [7:0] new_counter = (counter == 0 || irq_reload) ? irq_latch : counter - 1;
+  wire [7:0] new_counter = (counter == 0 || irq_reload) ? irq_latch : counter - 1'd1;
   reg [3:0] a12_ctr; 
    
   always @(posedge clk) if (reset) begin
@@ -496,8 +496,8 @@ module MMC4(input clk, input ce, input reset,
 // PPU reads $1FD8 through $1FDF: latch 1 is set to $FD for subsequent reads
 // PPU reads $1FE8 through $1FEF: latch 1 is set to $FE for subsequent reads
   always @(posedge clk) if (ce && chr_read) begin
-    latch_0 <= (chr_ain & 14'h3ff8) == 14'h0fd8 ? 0 : (chr_ain & 14'h3ff8) == 14'h0fe8 ? 1 : latch_0;
-    latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1 : latch_1;
+    latch_0 <= (chr_ain & 14'h3ff8) == 14'h0fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h0fe8 ? 1'd1 : latch_0;
+    latch_1 <= (chr_ain & 14'h3ff8) == 14'h1fd8 ? 1'd0 : (chr_ain & 14'h3ff8) == 14'h1fe8 ? 1'd1 : latch_1;
   end
   
   // The PRG bank to load. Each increment here is 16kb. So valid values are 0..15.
@@ -589,8 +589,7 @@ module MMC5(input clk, input ce, input reset,
   always @(posedge clk) begin
     if (ce) begin
       if (prg_write && prg_ain[15:10] == 6'b010100) begin // $5000-$53FF
-        if (prg_ain <= 16'h5113)
-          $write("%X <= %X (%d)\n", prg_ain, prg_din, ppu_scanline);
+        //if (prg_ain <= 16'h5113) $write("%X <= %X (%d)\n", prg_ain, prg_din, ppu_scanline);
         casez(prg_ain[9:0])
         10'h100: prg_mode <= prg_din[1:0];
         10'h101: chr_mode <= prg_din[1:0];
@@ -638,7 +637,7 @@ module MMC5(input clk, input ce, input reset,
       // Mode 3 - Read-only
       if (prg_write && prg_ain[15:10] == 6'b010111) begin // $5C00-$5FFF
         if (extended_ram_mode != 3)
-          expansion_ram[prg_ain[9:0]] <= (extended_ram_mode[1] || ppu_in_frame) ? prg_din : 0;
+          expansion_ram[prg_ain[9:0]] <= (extended_ram_mode[1] || ppu_in_frame) ? prg_din : 8'd0;
       end
     end
     if (reset) begin
@@ -681,7 +680,7 @@ module MMC5(input clk, input ce, input reset,
 
   // Compute if we're in the split area right now by counting PPU tiles.
   always @* begin
-    new_cur_tile = (ppu_cycle[8:3] == 40) ? 0 : (cur_tile + 6'b1);
+    new_cur_tile = (ppu_cycle[8:3] == 40) ? 6'd0 : (cur_tile + 6'b1);
     in_split_area = last_in_split_area;
     if (ppu_cycle[2:0] == 0 && ppu_cycle < 336) begin
       if (new_cur_tile == 0)
@@ -741,7 +740,7 @@ module MMC5(input clk, input ce, input reset,
       // Name table fetch
       if (insplit || mirrbits[0] == 0) chr_dout = (extended_ram_mode[1] ? 8'b0 : last_read_ram);
       else begin
-        $write("Inserting filltile!\n");
+        //$write("Inserting filltile!\n");
         chr_dout = fill_tile;
       end
     end else begin
@@ -829,10 +828,10 @@ module MMC5(input clk, input ce, input reset,
     
     // Override |chr_aout| if we're in a vertical split.
     if (insplit) begin
-      $write("In vertical split!\n");
+      //$write("In vertical split!\n");
       chr_aout = {2'b10, vsplit_bank, chr_ain[11:3], vscroll[2:0]};
     end else if (extended_ram_mode == 1 && is_bg_fetch) begin
-      $write("In exram thingy!\n");
+      //$write("In exram thingy!\n");
       // Extended attribute mode. Replace the page with the page from exram.
       chr_aout = {2'b10, upper_chr_bank_bits, last_read_ram[5:0], chr_ain[11:0]};
     end
@@ -909,7 +908,7 @@ module Rambo1(input clk, input ce, input reset,
     cycle_counter <= 0;
     irq <= 0;
   end else if (ce) begin
-    cycle_counter <= cycle_counter + 1;
+    cycle_counter <= cycle_counter + 1'd1;
         
     if (prg_write && prg_ain[15]) begin
       case({prg_ain[14:13], prg_ain[0]})
@@ -947,7 +946,7 @@ module Rambo1(input clk, input ce, input reset,
         counter <= irq_latch;
         want_irq <= irq_reload;
       end else begin
-        counter <= counter - 1;
+        counter <= counter - 1'd1;
         want_irq <= 1;
       end
       if (counter == 0 && want_irq && !irq_reload && irq_enable)
@@ -1161,9 +1160,10 @@ module Mapper16(input clk, input ce, input reset,
 		case(prg_ain[15:14])
 		2'b10: 	prgsel = prg_bank;			// $8000 is swapable
 		2'b11: 	prgsel = 4'hF;					// $C000 is hardwired to last bank
+		default: prgsel = 0;
 		endcase
 	end
-	
+
    reg [7:0] chrsel;  
    always begin
     casez(chr_ain[12:10])
@@ -1185,8 +1185,7 @@ module Mapper16(input clk, input ce, input reset,
    assign prg_aout = prg_is_ram ? prg_ram : prg_aout_tmp;
 	assign prg_dout = prg_is_ram ? 8'h00 : 8'hFF;							// EEPROM stub
   
-   assign prg_allow = prg_ain[15] && !prg_write ||
-                     prg_is_ram;
+   assign prg_allow = (prg_ain[15] && !prg_write) || prg_is_ram;
 	assign chr_allow = flags[15];
 	assign vram_ce = chr_ain[13];
 endmodule
@@ -1348,6 +1347,7 @@ module Mapper42(input clk, input ce, input reset,
 		3'b101: 	prg_sel = 4'hD;
 		3'b110: 	prg_sel = 4'hE;
 		3'b111: 	prg_sel = 4'hF;
+		default: prg_sel = 0;
 		endcase
 	end 
 	assign prg_aout = {5'b0, prg_sel, prg_ain[12:0]};    		// 8kB banks
@@ -1649,7 +1649,7 @@ module Mapper71(input clk, input ce, input reset,
     ciram_select <= 0;
   end else if (ce) begin
     if (prg_ain[15] && prg_write) begin
-      $write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
+      //$write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
       if (!prg_ain[14] && mapper232) // $8000-$BFFF Outer bank select (only on iNES 232)
         prg_bank[3:2] <= prg_din[4:3];
       if (prg_ain[14:13] == 0)       // $8000-$9FFF Fire Hawk Mirroring
@@ -1737,10 +1737,10 @@ module NesEvent(input clk, input ce, input reset,
     old_val <= mmc1_chr[3];
     // The 'I' bit in $A000 controls the IRQ counter.  When cleared, the IRQ counter counts up every cycle.  When
     // set, the IRQ counter is reset to 0 and stays there (does not count), and the pending IRQ is acknowledged.
-    counter <= mmc1_chr[3] ? 0 : counter + 1;
+    counter <= mmc1_chr[3] ? 1'd0 : counter + 1'd1;
     
     if (mmc1_chr != oldbits) begin
-      $write("NESEV Control Bits: %X => %X (%d)\n", oldbits, mmc1_chr, unlocked);
+      //$write("NESEV Control Bits: %X => %X (%d)\n", oldbits, mmc1_chr, unlocked);
       oldbits <= mmc1_chr;
     end
   end
@@ -1788,10 +1788,10 @@ module Mapper165(input clk, input ce, input reset,
   wire prg_is_ram;
 
   reg [6:0] chr_bank_0, chr_bank_1;  // Selected CHR banks
-  reg [7:0] chr_bank_2, chr_bank_3, chr_bank_4, chr_bank_5;
+  reg [7:0] chr_bank_2, chr_bank_4;
   reg latch_0, latch_1;
   
-  wire [7:0] new_counter = (counter == 0 || irq_reload) ? irq_latch : counter - 1;
+  wire [7:0] new_counter = (counter == 0 || irq_reload) ? irq_latch : counter - 1'd1;
   reg [3:0] a12_ctr; 
    
   always @(posedge clk) if (reset) begin
@@ -1803,7 +1803,7 @@ module Mapper165(input clk, input ce, input reset,
     {irq_enable, irq_reload} <= 0;
     {irq_latch, counter} <= 0;
     {ram_enable, ram_protect} <= 0;
-    {chr_bank_0, chr_bank_1, chr_bank_2, chr_bank_3, chr_bank_4, chr_bank_5} <= 0;
+    {chr_bank_0, chr_bank_1, chr_bank_2, chr_bank_4} <= 0;
     {prg_bank_0, prg_bank_1} <= 0;
     a12_ctr <= 0;
   end else if (ce) begin
@@ -1816,9 +1816,9 @@ module Mapper165(input clk, input ce, input reset,
         0: chr_bank_0 <= prg_din[7:1];  // Select 2 KB CHR bank at PPU $0000-$07FF (or $1000-$17FF);
         1: chr_bank_1 <= prg_din[7:1];  // Select 2 KB CHR bank at PPU $0800-$0FFF (or $1800-$1FFF);
         2: chr_bank_2 <= prg_din;       // Select 1 KB CHR bank at PPU $1000-$13FF (or $0000-$03FF);
-        3: chr_bank_3 <= prg_din;       // Select 1 KB CHR bank at PPU $1400-$17FF (or $0400-$07FF);
+        3: ;                            // Select 1 KB CHR bank at PPU $1400-$17FF (or $0400-$07FF);
         4: chr_bank_4 <= prg_din;       // Select 1 KB CHR bank at PPU $1800-$1BFF (or $0800-$0BFF);
-        5: chr_bank_5 <= prg_din;       // Select 1 KB CHR bank at PPU $1C00-$1FFF (or $0C00-$0FFF);
+        5: ;                            // Select 1 KB CHR bank at PPU $1C00-$1FFF (or $0C00-$0FFF);
         6: prg_bank_0 <= prg_din[5:0];  // Select 8 KB PRG ROM bank at $8000-$9FFF (or $C000-$DFFF);
         7: prg_bank_1 <= prg_din[5:0];  // Select 8 KB PRG ROM bank at $A000-$BFFF
         endcase
@@ -1870,8 +1870,8 @@ module Mapper165(input clk, input ce, input reset,
 // PPU reads $1FD0 through $1FDF: latch 1 is set to $FD for subsequent reads
 // PPU reads $1FE0 through $1FEF: latch 1 is set to $FE for subsequent reads
   always @(posedge clk) if (ce && chr_read) begin
-    latch_0 <= (chr_ain & 14'h3fff) == 14'h0fd0 ? 0 : (chr_ain & 14'h3fff) == 14'h0fe0 ? 1 : latch_0;
-    latch_1 <= (chr_ain & 14'h3ff0) == 14'h1fd0 ? 0 : (chr_ain & 14'h3ff0) == 14'h1fe0 ? 1 : latch_1;
+    latch_0 <= (chr_ain & 14'h3fff) == 14'h0fd0 ? 1'd0 : (chr_ain & 14'h3fff) == 14'h0fe0 ? 1'd1 : latch_0;
+    latch_1 <= (chr_ain & 14'h3ff0) == 14'h1fd0 ? 1'd0 : (chr_ain & 14'h3ff0) == 14'h1fe0 ? 1'd1 : latch_1;
   end
 
   // The CHR bank to load. Each increment here is 1kb. So valid values are 0..255.

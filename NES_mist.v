@@ -25,21 +25,21 @@ module GameLoader(input clk, input reset,
   assign mem_data = indata;
   assign mem_write = (bytes_left != 0) && (state == 1 || state == 2) && indata_clk;
   
-  wire [2:0] prg_size = prgrom <= 1  ? 0 :		// 16KB
-                        prgrom <= 2  ? 1 : 		// 32KB
-                        prgrom <= 4  ? 2 : 		// 64KB
-                        prgrom <= 8  ? 3 : 		// 128KB
-                        prgrom <= 16 ? 4 : 		// 256KB
-                        prgrom <= 32 ? 5 : 		// 512KB
-                        prgrom <= 64 ? 6 : 7;	// 1MB/2MB
+  wire [2:0] prg_size = prgrom <= 1  ? 3'd0 :		// 16KB
+                        prgrom <= 2  ? 3'd1 : 		// 32KB
+                        prgrom <= 4  ? 3'd2 : 		// 64KB
+                        prgrom <= 8  ? 3'd3 : 		// 128KB
+                        prgrom <= 16 ? 3'd4 : 		// 256KB
+                        prgrom <= 32 ? 3'd5 : 		// 512KB
+                        prgrom <= 64 ? 3'd6 : 3'd7;// 1MB/2MB
                         
-  wire [2:0] chr_size = chrrom <= 1  ? 0 : 		// 8KB
-                        chrrom <= 2  ? 1 : 		// 16KB
-                        chrrom <= 4  ? 2 : 		// 32KB
-                        chrrom <= 8  ? 3 : 		// 64KB
-                        chrrom <= 16 ? 4 : 		// 128KB
-                        chrrom <= 32 ? 5 : 		// 256KB
-                        chrrom <= 64 ? 6 : 7;	// 512KB/1MB
+  wire [2:0] chr_size = chrrom <= 1  ? 3'd0 : 		// 8KB
+                        chrrom <= 2  ? 3'd1 : 		// 16KB
+                        chrrom <= 4  ? 3'd2 : 		// 32KB
+                        chrrom <= 8  ? 3'd3 : 		// 64KB
+                        chrrom <= 16 ? 3'd4 : 		// 128KB
+                        chrrom <= 32 ? 3'd5 : 		// 256KB
+                        chrrom <= 64 ? 3'd6 : 3'd7;// 512KB/1MB
   
   // detect iNES2.0 compliant header
   wire is_nes20 = (ines[7][3:2] == 2'b10);
@@ -71,7 +71,7 @@ module GameLoader(input clk, input reset,
       // Read 16 bytes of ines header
       0: if (indata_clk) begin
 			  error <= 0;
-           ctr <= ctr + 1;
+           ctr <= ctr + 1'd1;
            ines[ctr] <= indata;
            bytes_left <= {prgrom, 14'b0};
            if (ctr == 4'b1111)
@@ -81,8 +81,8 @@ module GameLoader(input clk, input reset,
       1, 2: begin // Read the next |bytes_left| bytes into |mem_addr|
           if (bytes_left != 0) begin
             if (indata_clk) begin
-              bytes_left <= bytes_left - 1;
-              mem_addr <= mem_addr + 1;
+              bytes_left <= bytes_left - 1'd1;
+              mem_addr <= mem_addr + 1'd1;
             end
           end else if (state == 1) begin
             state <= 2;
@@ -251,8 +251,6 @@ wire [7:0] nes_joy_B = (reset_nes || osd_visible) ? 8'd0 :
   reg [7:0] joypad_bits, joypad_bits2;
   reg [7:0] powerpad_d3, powerpad_d4;
   reg [1:0] last_joypad_clock;
-  wire [31:0] dbgadr;
-  wire [1:0] dbgctr;
 
   reg [1:0] nes_ce;
 
@@ -306,7 +304,7 @@ wire [7:0] nes_joy_B = (reset_nes || osd_visible) ? 8'd0 :
 		led_blink <= led_blink + 13'd1;
 	end
  
-	assign LED = downloading ? 0 : loader_fail ? led_blink[12] : 1;
+	assign LED = ~(downloading | (loader_fail & led_blink[12]));
 
   wire osd_visible;
 
@@ -315,8 +313,8 @@ wire [7:0] nes_joy_B = (reset_nes || osd_visible) ? 8'd0 :
 
   // NES is clocked at every 4th cycle.
   always @(posedge clk)
-    nes_ce <= nes_ce + 1;
-    
+    nes_ce <= nes_ce + 1'd1;
+
   NES nes(clk, reset_nes, run_nes,
           mapper_flags,
           sample, color,
@@ -326,9 +324,7 @@ wire [7:0] nes_joy_B = (reset_nes || osd_visible) ? 8'd0 :
           memory_read_cpu, memory_din_cpu,
           memory_read_ppu, memory_din_ppu,
           memory_write, memory_dout,
-          cycle, scanline,
-          dbgadr,
-          dbgctr);
+          cycle, scanline);
 
 assign SDRAM_CKE         = 1'b1;
 

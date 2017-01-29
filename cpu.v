@@ -97,6 +97,7 @@ module NewAlu(input  [10:0] OP, // ALU Operation
     1: if (!o_fc) VO = IntR[6]; // Set V to 6th bit for BIT
     3: VO = AddVO;              // ADC always sets V
     7: if (o_fc) VO = AddVO;    // Only SBC sets V.
+	 default: ;
     endcase
     // Compute sign flag. It's always the uppermost bit of the result,
     // except for BIT that sets it to the 7th input bit
@@ -211,7 +212,7 @@ module CPU(input clk, input ce, input reset,
     case (StateCtrl)
     0: NextState = State + 3'd1;
     1: NextState = (AXCarry ? 3'd4 : 3'd5);
-    2: NextState = (IsBranchCycle1 && JumpTaken) ? 2 : 0; // Override next state if the branch is taken.
+    2: NextState = (IsBranchCycle1 && JumpTaken) ? 3'd2 : 3'd0; // Override next state if the branch is taken.
     3: NextState = (JumpNoOverflow ? 3'd0 : 3'd4);
     endcase
   end
@@ -252,7 +253,7 @@ wire nmi_remembered = (AddrBus != 3) && !IsResetInterrupt ? nmi : LastNMI;
 // NMI flag is cleared right after we read the vector address
 wire turn_nmi_off = (AddrBus == 3) && (State[0] == 0);
 // Controls whether IsNmiInterrupt will get set
-wire nmi_active = turn_nmi_on ? 1 : turn_nmi_off ? 0 : IsNMIInterrupt;
+wire nmi_active = turn_nmi_on ? 1'd1 : turn_nmi_off ? 1'd0 : IsNMIInterrupt;
 always @(posedge clk) begin
   if (reset) begin
     IsNMIInterrupt <= 0;

@@ -20,7 +20,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-module data_io #(parameter ADDR_WIDTH=16, START_ADDR = 0) (
+module data_io #(parameter ADDR_WIDTH=16, START_ADDR = 16'd0) (
 	// io controller spi interface
 	input         sck,
 	input         ss,
@@ -77,7 +77,7 @@ always@(posedge spi_sck, posedge ss) begin
 
 		// increase target address after write
 		if(rclk)
-			addr <= addr + 1;
+			addr <= addr + 1'd1;
 	 
 		// count 0-7 8-15 8-15 ... 
 		if(cnt < 15) 	cnt <= cnt + 4'd1;
