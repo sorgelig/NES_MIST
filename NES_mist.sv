@@ -401,14 +401,14 @@ wire downloading;
 video video
 (
 	.clk(clk),
-	.sdi(SPI_DI),
-	.sck(SPI_SCK),
-	.ss(SPI_SS3),
-		
+	.SPI_DI(SPI_DI),
+	.SPI_SCK(SPI_SCK),
+	.SPI_SS3(SPI_SS3),
+
 	.color(color),
 	.count_v(scanline),
 	.count_h(cycle),
-	.mode(scandoubler_disable),
+	.scandoubler_disable(scandoubler_disable),
 	.ypbpr(ypbpr),
 	.smoothing(!smoothing_osd),
 	.scanlines(scanlines_osd),

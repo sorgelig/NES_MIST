@@ -306,11 +306,12 @@ set_global_assignment -name VERILOG_FILE keyboard.v
 set_global_assignment -name VERILOG_FILE sigma_delta_dac.v
 set_global_assignment -name VERILOG_FILE sdram.v
 set_global_assignment -name VERILOG_FILE mist_io.v
-set_global_assignment -name VERILOG_FILE osd.v
 set_global_assignment -name VERILOG_FILE compat.v
 set_global_assignment -name SYSTEMVERILOG_FILE ppu.sv
 set_global_assignment -name VERILOG_FILE mmu.v
 set_global_assignment -name VERILOG_FILE cpu.v
+set_global_assignment -name VERILOG_FILE osd.v
+set_global_assignment -name VERILOG_FILE scandoubler.v
 set_global_assignment -name SYSTEMVERILOG_FILE video_mixer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE video.sv
 set_global_assignment -name VERILOG_FILE nes.v
