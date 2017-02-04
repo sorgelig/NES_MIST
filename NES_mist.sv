@@ -158,20 +158,17 @@ wire [1:0] switches;
 // it to control the menu on the OSD 
 parameter CONF_STR = {
 	"NES;NES;",
-	"O1,HQ2X(VGA-Only),OFF,ON;",
-	"O2,Scanlines,OFF,ON;",
+	"O12,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
 	"O3,Invert mirroring,OFF,ON;",
 	"O4,Hide overscan,OFF,ON;",
 	"O5,Palette,FCEUX,Unsaturated-V6;",
 	"T6,Reset;",
-	"V,v0.8;"
+	"V,v0.81;"
 };
 
 wire [31:0] status;
 
 wire arm_reset = status[0];
-wire smoothing_osd = status[1];
-wire scanlines_osd = status[2];
 wire mirroring_osd = status[3];
 wire overscan_osd = status[4];
 wire palette2_osd = status[5];
@@ -400,7 +397,7 @@ wire downloading;
 
 video video
 (
-	.clk(clk),
+	.clk(clk85),
 	.SPI_DI(SPI_DI),
 	.SPI_SCK(SPI_SCK),
 	.SPI_SS3(SPI_SS3),
@@ -410,8 +407,7 @@ video video
 	.count_h(cycle),
 	.scandoubler_disable(scandoubler_disable),
 	.ypbpr(ypbpr),
-	.smoothing(!smoothing_osd),
-	.scanlines(scanlines_osd),
+	.scale(status[2:1]),
 	.overscan(overscan_osd),
 	.palette(palette2_osd),
 	

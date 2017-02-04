@@ -9,8 +9,7 @@ module video
 	input  [8:0] count_v,
 	input        scandoubler_disable,
 	input        ypbpr,
-	input        smoothing,
-	input        scanlines,
+	input  [1:0] scale,
 	input        overscan,
 	input        palette,
 	
@@ -30,11 +29,11 @@ module video
 reg pix_ce, pix_ce_n;
 
 always @(negedge clk) begin
-	reg [1:0] cnt = 0;
+	reg [3:0] cnt = 0;
 	
 	cnt <= cnt + 1'd1;
-	pix_ce   <= ~cnt[1] & ~cnt[0];
-	pix_ce_n <=  cnt[1] & ~cnt[0];
+	pix_ce   <= !cnt[3] & !cnt[2:0];
+	pix_ce_n <=  cnt[3] & !cnt[2:0];
 end
 
 // NTSC UnsaturatedV6 palette
@@ -118,19 +117,23 @@ wire [4:0] vga_r = ol ? {4'b0, pixel_v[4:4]}   : pixel_v[4:0];
 wire [4:0] vga_g = ol ? {4'b0, pixel_v[9:9]}   : pixel_v[9:5];
 wire [4:0] vga_b = ol ? {4'b0, pixel_v[14:14]} : pixel_v[14:10];
 
-wire [9:0] dbg_vs_low;
-
-video_mixer video_mixer
+video_mixer #(.LINE_LENGTH(350), .HALF_DEPTH(0)) video_mixer
 (
 	.*,
 	.clk_sys(clk),
-	.scanlines({1'b0, scanlines}),
+	.ce_pix(pix_ce),
+	.ce_pix_actual(pix_ce),
+
+	.scanlines({scale==3, scale==2}),
 	.ypbpr_full(1),
+	.hq2x(scale==1),
+	.mono(0),
+	.line_start(0),
 	.osd_enabled(osd_visible),
 
-	.R({vga_r, vga_r[2:0]}),
-	.G({vga_g, vga_g[2:0]}),
-	.B({vga_b, vga_b[2:0]})
+	.R({vga_r, vga_r[4]}),
+	.G({vga_g, vga_g[4]}),
+	.B({vga_b, vga_b[4]})
 );
 
 endmodule

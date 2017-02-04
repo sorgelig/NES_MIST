@@ -5,8 +5,6 @@ module osd (
 	// OSDs pixel clock, should be synchronous to cores pixel clock to
 	// avoid jitter.
 	input        clk_sys,
-	input        ce_pix,
-	input        doublescan,
 
 	// SPI interface
 	input        SPI_SCK,
@@ -14,16 +12,16 @@ module osd (
 	input        SPI_DI,
 
 	// VGA signals coming from core
-	input  [7:0] R_in,
-	input  [7:0] G_in,
-	input  [7:0] B_in,
+	input  [5:0] R_in,
+	input  [5:0] G_in,
+	input  [5:0] B_in,
 	input        HSync,
 	input        VSync,
-
+	
 	// VGA signals going to video connector
-	output [7:0] R_out,
-	output [7:0] G_out,
-	output [7:0] B_out,
+	output [5:0] R_out,
+	output [5:0] G_out,
+	output [5:0] B_out,
 
 	output reg   osd_enabled
 );
@@ -94,10 +92,33 @@ reg  [9:0] vs_low, vs_high;
 wire       vs_pol = vs_high < vs_low;
 wire [9:0] dsp_height = vs_pol ? vs_low : vs_high;
 
+wire doublescan = (dsp_height>350); 
+
+reg ce_pix;
+always @(negedge clk_sys) begin
+	integer cnt = 0;
+	integer pixsz, pixcnt;
+	reg hs;
+
+	cnt <= cnt + 1;
+	hs <= HSync;
+
+	pixcnt <= pixcnt + 1;
+	if(pixcnt == pixsz) pixcnt <= 0;
+	ce_pix <= !pixcnt;
+
+	if(hs && ~HSync) begin
+		cnt    <= 0;
+		pixsz  <= (cnt >> 9) - 1;
+		pixcnt <= 0;
+		ce_pix <= 1;
+	end
+end
+
 always @(posedge clk_sys) begin
 	reg hsD, hsD2;
 	reg vsD, vsD2;
-	
+
 	if(ce_pix) begin
 		// bring hsync into local clock domain
 		hsD <= HSync;
@@ -152,8 +173,8 @@ always @(posedge clk_sys) if(ce_pix) osd_byte <= osd_buffer[{doublescan ? osd_vc
 
 wire osd_pixel = osd_byte[doublescan ? osd_vcnt[4:2] : osd_vcnt[3:1]];
 
-assign R_out = !osd_de ? R_in : {osd_pixel, osd_pixel, OSD_COLOR[2], R_in[7:3]};
-assign G_out = !osd_de ? G_in : {osd_pixel, osd_pixel, OSD_COLOR[1], G_in[7:3]};
-assign B_out = !osd_de ? B_in : {osd_pixel, osd_pixel, OSD_COLOR[0], B_in[7:3]};
+assign R_out = !osd_de ? R_in : {osd_pixel, osd_pixel, OSD_COLOR[2], R_in[5:3]};
+assign G_out = !osd_de ? G_in : {osd_pixel, osd_pixel, OSD_COLOR[1], G_in[5:3]};
+assign B_out = !osd_de ? B_in : {osd_pixel, osd_pixel, OSD_COLOR[0], B_in[5:3]};
 
 endmodule
